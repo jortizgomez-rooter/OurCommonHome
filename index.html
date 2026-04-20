@@ -50,6 +50,7 @@
         @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         .login-card { background: white; border-radius: 1.5rem; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
         .code-block { background:#0f172a; color:#22c55e; padding:1rem; border-radius:1rem; font-size:0.7rem; overflow-x:auto; font-family:monospace; }
+        .avatar-fallback { background: linear-gradient(135deg, #16a34a, #22c55e); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 1.2rem; }
     </style>
 </head>
 <body class="text-slate-900 pb-32">
@@ -65,6 +66,16 @@
         <input id="auth-pass" type="password" placeholder="Contraseña" class="input-field">
         <button class="btn-primary" onclick="login()">Entrar</button>
         <button class="btn-primary" style="background:#16a34a;" onclick="register()">Crear cuenta</button>
+        
+        <!-- OWNER LOGIN -->
+        <div class="pt-4 border-t border-slate-100">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Acceso Owner</p>
+            <input id="owner-email" type="email" placeholder="Email owner" class="input-field mb-2">
+            <input id="owner-pass" type="password" placeholder="Contraseña owner" class="input-field mb-2">
+            <button class="btn-primary" style="background:#7c3aed;" onclick="loginOwner()">
+                🔐 Entrar como Owner
+            </button>
+        </div>
     </div>
     
     <button onclick="toggleGuide()" class="mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Guía Supabase ⚙️</button>
@@ -101,7 +112,8 @@
             <h1 id="view-title" class="text-2xl font-extrabold tracking-tight">Inicio</h1>
         </div>
         <button onclick="changeTab('profile', document.querySelectorAll('.tab-btn')[3])" class="w-11 h-11 rounded-2xl shadow-sm border border-slate-100 bg-white overflow-hidden active:scale-95 transition-transform">
-            <img id="header-avatar" src="" class="w-full h-full object-cover">
+            <img id="header-avatar" src="" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div id="header-avatar-fallback" class="w-full h-full avatar-fallback hidden">?</div>
         </button>
     </header>
 
@@ -191,8 +203,13 @@
         <!-- ===== ADMIN ===== -->
         <div id="view-admin" class="tab-view hidden space-y-4">
             <div class="card p-6">
-                <h3 class="font-black text-lg mb-1">Panel Owner 👑</h3>
-                <p class="text-xs text-slate-500 mb-4">Gestión de roles de usuarios</p>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-2xl">👑</div>
+                    <div>
+                        <h3 class="font-black text-lg">Panel Owner</h3>
+                        <p class="text-xs text-slate-500">Gestión de roles de usuarios</p>
+                    </div>
+                </div>
                 <div id="users-list" class="space-y-2">
                     <div class="text-center text-slate-400 text-sm py-4">Cargando usuarios...</div>
                 </div>
@@ -203,7 +220,8 @@
         <div id="view-profile" class="tab-view hidden space-y-4">
             <div class="card p-6 text-center">
                 <div class="w-24 h-24 rounded-[2rem] mx-auto mb-4 border-4 border-green-50 overflow-hidden shadow-md relative">
-                    <img id="p-avatar" src="" class="w-full h-full object-cover">
+                    <img id="p-avatar" src="" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div id="p-avatar-fallback" class="w-full h-full avatar-fallback hidden">?</div>
                     <button onclick="openCameraForAvatar()" class="absolute bottom-0 right-0 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-xs shadow-lg">📷</button>
                 </div>
                 <h3 id="p-name" class="text-xl font-black">—</h3>
@@ -350,6 +368,7 @@ for each row execute procedure handle_new_user();
 
     let db, map, cameraStream, capturedPhotoData, cameraMode = 'post';
     let currentUser = null;
+    let isOwner = false;
 
     const COLLECTION_POINTS = [
         { name: 'Centro de Acopio Municipal', coords: [-74.1086, 4.8105], type: 'municipal', color: '#16a34a', desc: 'Cra. 3 #5-20, Cota. Lun–Vie 8am–5pm' },
@@ -374,14 +393,7 @@ for each row execute procedure handle_new_user();
         const { data: { session } } = await db.auth.getSession();
         if (session) {
             currentUser = session.user;
-            const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
-            if (profile?.name) {
-                localStorage.setItem('user_real_name', profile.name);
-                localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
-                enterApp();
-            } else {
-                showOnboarding();
-            }
+            await initUserData();
         }
     };
 
@@ -394,14 +406,7 @@ for each row execute procedure handle_new_user();
         const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
         if (error) { alert(error.message); return; }
         currentUser = data.user;
-        const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
-        if (profile?.name) {
-            localStorage.setItem('user_real_name', profile.name);
-            localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
-            enterApp();
-        } else {
-            showOnboarding();
-        }
+        await initUserData();
     }
 
     async function register() {
@@ -414,11 +419,53 @@ for each row execute procedure handle_new_user();
         showOnboarding();
     }
 
+    // OWNER LOGIN: usa el mismo auth de Supabase pero verifica role=owner
+    async function loginOwner() {
+        const email = document.getElementById('owner-email').value;
+        const pass = document.getElementById('owner-pass').value;
+        
+        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+        if (error) { alert('Credenciales incorrectas'); return; }
+        
+        currentUser = data.user;
+        
+        // Verificar que sea owner
+        const { data: profile } = await db.from('profiles').select('role').eq('id', currentUser.id).single();
+        
+        if (profile?.role === 'owner') {
+            isOwner = true;
+            localStorage.setItem('is_owner', 'true');
+            showToast('Bienvenido Owner 👑');
+            await initUserData();
+        } else {
+            await db.auth.signOut();
+            currentUser = null;
+            alert('Esta cuenta no tiene permisos de Owner');
+        }
+    }
+
     async function logout() {
         await db.auth.signOut();
         localStorage.clear();
         currentUser = null;
+        isOwner = false;
         location.reload();
+    }
+
+    async function initUserData() {
+        const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+        
+        if (profile?.name) {
+            localStorage.setItem('user_real_name', profile.name);
+            localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
+            if (profile.role === 'owner' || localStorage.getItem('is_owner') === 'true') {
+                isOwner = true;
+                localStorage.setItem('is_owner', 'true');
+            }
+            enterApp();
+        } else {
+            showOnboarding();
+        }
     }
 
     function showOnboarding() {
@@ -448,7 +495,39 @@ for each row execute procedure handle_new_user();
         document.getElementById('main-app').classList.remove('hidden');
         updateGlobalUI();
         loadHomeData();
-        checkAdmin();
+        if (isOwner) {
+            document.getElementById('admin-badge').classList.remove('hidden');
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // AVATAR / PROFILE IMAGE
+    // ─────────────────────────────────────────────
+    function updateAvatar(url, fallbackText) {
+        const pAvatar = document.getElementById('p-avatar');
+        const pFallback = document.getElementById('p-avatar-fallback');
+        const hAvatar = document.getElementById('header-avatar');
+        const hFallback = document.getElementById('header-avatar-fallback');
+        
+        if (url && url !== 'null' && url !== 'undefined') {
+            pAvatar.src = url;
+            pAvatar.style.display = 'block';
+            pFallback.style.display = 'none';
+            pFallback.innerText = fallbackText;
+            
+            hAvatar.src = url;
+            hAvatar.style.display = 'block';
+            hFallback.style.display = 'none';
+            hFallback.innerText = fallbackText;
+        } else {
+            pAvatar.style.display = 'none';
+            pFallback.style.display = 'flex';
+            pFallback.innerText = fallbackText;
+            
+            hAvatar.style.display = 'none';
+            hFallback.style.display = 'flex';
+            hFallback.innerText = fallbackText;
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -457,11 +536,28 @@ for each row execute procedure handle_new_user();
     function updateGlobalUI() {
         const name = localStorage.getItem('user_real_name') || 'Usuario';
         const tag = localStorage.getItem('user_unique_tag') || '@usuario';
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${tag}&backgroundColor=d1fae5`;
+        const initial = name.charAt(0).toUpperCase();
+        
+        // Generar avatar con Dicebear como fallback principal
+        const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tag)}&backgroundColor=d1fae5`;
+        
+        // Intentar cargar avatar desde Supabase primero, si no, usar Dicebear
+        if (currentUser) {
+            db.from('profiles').select('avatar_url').eq('id', currentUser.id).single().then(({data}) => {
+                if (data?.avatar_url) {
+                    updateAvatar(data.avatar_url, initial);
+                } else {
+                    updateAvatar(dicebearUrl, initial);
+                }
+            }).catch(() => {
+                updateAvatar(dicebearUrl, initial);
+            });
+        } else {
+            updateAvatar(dicebearUrl, initial);
+        }
+        
         document.getElementById('p-name').innerText = name;
         document.getElementById('p-tag').innerText = tag;
-        document.getElementById('p-avatar').src = avatar;
-        document.getElementById('header-avatar').src = avatar;
         document.getElementById('pub-author').innerText = name;
     }
 
@@ -490,20 +586,13 @@ for each row execute procedure handle_new_user();
     // ─────────────────────────────────────────────
     // ADMIN
     // ─────────────────────────────────────────────
-    async function checkAdmin() {
-        if (!currentUser) return;
-        const { data } = await db.from('profiles').select('role').eq('id', currentUser.id).single();
-        if (data?.role === 'owner') {
-            document.getElementById('admin-badge').classList.remove('hidden');
-        }
-    }
-
     async function loadUsers() {
         const { data } = await db.from('profiles').select('*');
         document.getElementById('users-list').innerHTML = (data || []).map(u => `
             <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                 <div class="flex items-center gap-3">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}&backgroundColor=d1fae5" class="w-10 h-10 rounded-full">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}&backgroundColor=d1fae5" class="w-10 h-10 rounded-full" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-10 h-10 rounded-full avatar-fallback hidden text-sm">${(u.name || '?').charAt(0).toUpperCase()}</div>
                     <div>
                         <p class="font-bold text-sm">${u.name || '—'}</p>
                         <p class="text-[10px] text-slate-400">${u.role || 'user'}</p>
@@ -619,7 +708,8 @@ for each row execute procedure handle_new_user();
             return `
             <div class="card p-5">
                 <div class="flex items-center gap-3 mb-3">
-                    <img src="${avatar}" class="w-10 h-10 rounded-full bg-green-50 border border-green-100 flex-shrink-0">
+                    <img src="${avatar}" class="w-10 h-10 rounded-full bg-green-50 border border-green-100 flex-shrink-0" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-10 h-10 rounded-full avatar-fallback hidden text-sm flex-shrink-0">${(p.autor || '?').charAt(0).toUpperCase()}</div>
                     <div>
                         <p class="font-extrabold text-sm text-slate-900 leading-tight">${escHtml(p.autor || 'Anónimo')}</p>
                         <p class="text-[9px] text-slate-400 font-bold">Cota · ${timeAgo}</p>
@@ -702,15 +792,13 @@ for each row execute procedure handle_new_user();
         const dataUrl = document.getElementById('canvas-preview').src;
         
         if (cameraMode === 'avatar') {
-            // Subir a Supabase Storage
             if (currentUser) {
                 const blob = await (await fetch(dataUrl)).blob();
                 const path = `avatars/${currentUser.id}.jpg`;
                 await db.storage.from('avatars').upload(path, blob, { upsert: true });
                 const { data } = db.storage.from('avatars').getPublicUrl(path);
                 await db.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', currentUser.id);
-                document.getElementById('p-avatar').src = data.publicUrl;
-                document.getElementById('header-avatar').src = data.publicUrl;
+                updateAvatar(data.publicUrl, (localStorage.getItem('user_real_name') || '?').charAt(0).toUpperCase());
                 showToast('Foto de perfil actualizada 📸');
             }
         } else {
