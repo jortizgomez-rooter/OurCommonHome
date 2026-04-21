@@ -6,13 +6,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Nuestro Hogar Común | Cota</title>
     
-    <script src="https://cdn.tailwindcss.com?v=2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=2"></script>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css?v=2' rel='stylesheet' />
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js?v=2'></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -70,42 +69,53 @@
         .post-admin .delete-btn { position: absolute; top: 0.5rem; right: 0.5rem; opacity: 0; transition: opacity 0.2s; }
         .post-admin:hover .delete-btn { opacity: 1; }
         
-        .diagnostic-panel { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
-        .diagnostic-panel h4 { color: #92400e; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.5rem; }
-        .diagnostic-log { font-family: 'Courier New', monospace; font-size: 0.7rem; color: #78350f; background: #fffbeb; padding: 0.75rem; border-radius: 0.5rem; max-height: 200px; overflow-y: auto; line-height: 1.5; }
-        .emergency-btn { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 1rem; font-weight: 800; padding: 0.85rem; border: none; cursor: pointer; width: 100%; font-size: 0.85rem; margin-top: 0.5rem; }
-        .emergency-btn:active { transform: scale(0.96); }
+        /* OTP Styles */
+        .otp-container { display: flex; gap: 0.5rem; justify-content: center; margin: 1.5rem 0; }
+        .otp-input { width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 800; border: 2px solid #e2e8f0; border-radius: 1rem; background: #f8fafc; outline: none; transition: all 0.2s; }
+        .otp-input:focus { border-color: #16a34a; background: #f0fdf4; transform: scale(1.05); }
+        .otp-input.filled { border-color: #16a34a; background: #dcfce7; color: #15803d; }
+        .otp-timer { font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
+        .otp-timer.expired { color: #ef4444; }
         
-        .verify-banner { background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 2px solid #3b82f6; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; text-align: center; }
-        .verify-banner h4 { color: #1d4ed8; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; }
-        .verify-banner p { color: #3b82f6; font-size: 0.8rem; }
+        .method-selector { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .method-btn { flex: 1; padding: 0.75rem; border-radius: 1rem; border: 2px solid #e2e8f0; background: white; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; color: #64748b; }
+        .method-btn.active { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+        .method-btn:active { transform: scale(0.97); }
         
-        .cache-purge-banner { background: linear-gradient(135deg, #fee2e2, #fef2f2); border: 2px solid #ef4444; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; text-align: center; }
-        .cache-purge-banner h4 { color: #dc2626; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; }
-        .cache-purge-banner p { color: #ef4444; font-size: 0.75rem; }
+        .phone-input { direction: ltr; text-align: left; }
     </style>
 </head>
 <body class="text-slate-900 pb-32">
-
-<!-- CACHE PURGE BANNER -->
-<div id="cache-purge-banner" class="cache-purge-banner hidden fixed top-0 left-0 right-0 z-[999] mx-4 mt-4">
-    <h4>🧹 Purga de caché detectada</h4>
-    <p>Se limpió caché viejo. Recarga la página para aplicar cambios.</p>
-    <button onclick="hardReload()" class="btn-red mt-2 text-xs">Recargar forzada (Ctrl+F5)</button>
-</div>
 
 <!-- ==================== AUTH SCREEN ==================== -->
 <div id="auth-screen" class="fixed inset-0 bg-[#F0F4F0] z-[100] flex flex-col items-center justify-center p-6 overflow-y-auto">
     <div class="w-28 h-28 bg-green-50 rounded-[2.5rem] mb-6 flex items-center justify-center text-6xl shadow-inner">🌿</div>
     <h1 class="text-3xl font-black mb-2 tracking-tight">Nuestro Hogar Común</h1>
     <p class="text-slate-500 font-medium text-sm mb-2 text-center max-w-xs">Comunidad ecológica de Cota. Retos, mapa y muro verde.</p>
-    <p id="version-tag" class="text-[10px] text-slate-400 font-mono mb-4">v2.0.0</p>
+    <p id="version-tag" class="text-[10px] text-slate-400 font-mono mb-4">v2.1.0-OTP</p>
     
-    <!-- EMAIL VERIFICATION BANNER -->
-    <div id="verify-banner" class="verify-banner hidden w-full max-w-sm">
-        <h4>📩 Verifica tu correo</h4>
-        <p>Te enviamos un enlace a <b id="verify-email"></b>.<br>Haz clic en el enlace para activar tu cuenta.</p>
-        <button onclick="resendVerification()" class="btn-green mt-2 text-xs">Reenviar email</button>
+    <!-- OTP VERIFICATION SCREEN -->
+    <div id="otp-screen" class="hidden w-full max-w-sm">
+        <div class="login-card text-center">
+            <div class="w-16 h-16 bg-blue-50 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl">🔐</div>
+            <h2 class="text-xl font-black mb-2">Verificación OTP</h2>
+            <p class="text-sm text-slate-500 mb-4">Ingresa el código de 6 dígitos enviado a <b id="otp-target"></b></p>
+            
+            <div class="otp-container" id="otp-inputs">
+                <input type="text" maxlength="1" class="otp-input" data-index="0" inputmode="numeric" autocomplete="one-time-code">
+                <input type="text" maxlength="1" class="otp-input" data-index="1" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-input" data-index="2" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-input" data-index="3" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-input" data-index="4" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-input" data-index="5" inputmode="numeric">
+            </div>
+            
+            <p class="otp-timer mb-4" id="otp-timer">Reenviar código en 60s</p>
+            
+            <button class="btn-primary mb-3" onclick="verifyOTP()" id="verify-otp-btn">Verificar</button>
+            <button onclick="resendOTP()" class="w-full text-sm text-slate-400 font-bold mb-3" id="resend-otp-btn" disabled>Reenviar código</button>
+            <button onclick="cancelOTP()" class="w-full text-xs text-red-400 font-bold">Cancelar</button>
+        </div>
     </div>
     
     <!-- DIAGNOSTIC PANEL -->
@@ -118,22 +128,28 @@
         </div>
     </div>
     
-    <div class="login-card w-full max-w-sm space-y-3">
+    <!-- MAIN AUTH FORM -->
+    <div id="auth-form" class="login-card w-full max-w-sm space-y-3">
         <input id="auth-email" type="email" placeholder="Email" class="input-field" value="raulortiz11@gmail.com">
-        <input id="auth-pass" type="password" placeholder="Contraseña" class="input-field" value="Diciembre07">
+        <input id="auth-pass" type="password" placeholder="Contraseña (mín. 6 caracteres)" class="input-field" value="Diciembre07">
+        
+        <!-- Phone input for SMS OTP (optional) -->
+        <div id="phone-section" class="hidden">
+            <input id="auth-phone" type="tel" placeholder="+57 300 123 4567" class="input-field phone-input">
+            <p class="text-[10px] text-slate-400 px-1">Incluye código de país (ej: +57 para Colombia)</p>
+        </div>
+        
+        <!-- Method selector -->
+        <div class="method-selector">
+            <button class="method-btn active" onclick="setAuthMethod('email')" id="method-email">📧 Email</button>
+            <button class="method-btn" onclick="setAuthMethod('sms')" id="method-sms">📱 SMS</button>
+        </div>
+        
         <button class="btn-primary" onclick="login()">Entrar</button>
         <button class="btn-primary" style="background:#16a34a;" onclick="register()">Crear cuenta</button>
         
         <button onclick="runDiagnostics()" class="w-full p-3 rounded-xl border-2 border-amber-200 text-amber-600 font-bold text-xs active:scale-95 transition-transform bg-amber-50">
             🔍 Diagnosticar Supabase
-        </button>
-        
-        <button onclick="toggleEmergencySQL()" class="emergency-btn">
-            🆘 SQL de Emergencia
-        </button>
-        
-        <button onclick="forcePurgeAll()" class="w-full p-3 rounded-xl border-2 border-red-200 text-red-600 font-bold text-xs active:scale-95 transition-transform bg-red-50">
-            🧹 Forzar purga TOTAL de caché
         </button>
         
         <div class="owner-section">
@@ -150,7 +166,7 @@
     <button onclick="toggleGuide()" class="mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Guía Supabase ⚙️</button>
 </div>
 
-<!-- ==================== PROFILE SETUP (Legacy Account Creator) ==================== -->
+<!-- ==================== PROFILE SETUP ==================== -->
 <div id="profile-setup" class="fixed inset-0 bg-white z-[100] flex flex-col hidden">
     <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
         <div class="w-28 h-28 bg-green-50 rounded-[2.5rem] mb-8 flex items-center justify-center text-6xl shadow-inner">👤</div>
@@ -375,56 +391,6 @@
     </div>
 </div>
 
-<!-- EMERGENCY SQL MODAL -->
-<div id="emergency-sql-modal" class="modal-overlay hidden" onclick="toggleEmergencySQL(event)">
-    <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto;">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="font-black text-lg text-red-600">🆘 Configuración Supabase</h3>
-            <button onclick="toggleEmergencySQL()" class="text-slate-400 font-bold text-sm p-2">Cerrar</button>
-        </div>
-        
-        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-            <p class="text-xs text-red-700 font-bold mb-2">⚠️ CONFIGURAR URL DE REDIRECCIÓN:</p>
-            <ol class="text-xs text-red-600 space-y-1 list-decimal list-inside">
-                <li>Ve a <b>Supabase Dashboard</b> → <b>Authentication</b> → <b>URL Configuration</b></li>
-                <li>En <b>Site URL</b> pon tu dominio real</li>
-                <li>En <b>Redirect URLs</b> añade tu dominio</li>
-                <li>Guarda cambios</li>
-            </ol>
-        </div>
-
-        <div class="code-block" style="font-size:0.6rem; line-height:1.5; max-height:300px; overflow-y:auto;">
--- Añadir columnas faltantes a profiles
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
-ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
-
--- Recrear función del trigger
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, name, email, role, created_at, updated_at)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', ''), new.email, 'user', now(), now())
-  ON CONFLICT (id) DO NOTHING;
-  RETURN new;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();
-        </div>
-        
-        <button onclick="copyEmergencySQL()" class="btn-primary mt-4" style="background:#16a34a;">📋 Copiar SQL</button>
-    </div>
-</div>
-
 <!-- GUIDE MODAL -->
 <div id="guide-modal" class="modal-overlay hidden" onclick="toggleGuide(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto;">
@@ -433,9 +399,9 @@ CREATE TRIGGER on_auth_user_created
             <button onclick="toggleGuide()" class="text-slate-400 font-bold text-sm p-2">Cerrar</button>
         </div>
         <div class="space-y-3 text-sm">
-            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">Paso 1</p><p>Ve a <a href="https://supabase.com" target="_blank" class="text-green-600 font-bold">supabase.com</a></p></div>
-            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">Paso 2</p><p>Crea un proyecto nuevo</p></div>
-            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">Paso 3</p><p>Copia URL y anon key</p></div>
+            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">OTP Email</p><p>Supabase envía código automáticamente. No requiere configuración extra.</p></div>
+            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">OTP SMS</p><p>Configura Twilio/MessageBird en Supabase Dashboard → Auth → Providers → Phone</p></div>
+            <div class="card p-4"><p class="font-bold text-xs text-slate-400 uppercase mb-1">Site URL</p><p>Authentication → URL Configuration → Site URL = tu dominio</p></div>
         </div>
     </div>
 </div>
@@ -444,7 +410,7 @@ CREATE TRIGGER on_auth_user_created
     // ============================================================
     // CONFIG
     // ============================================================
-    const APP_VERSION = '2.0.2';
+    const APP_VERSION = '2.1.0-OTP';
     const SITE_URL = window.location.origin;
     
     const MAPBOX_TOKEN = 'pk.eyJ1IjoiamVyaXhkZXZlbG9waW5naSIsImEiOiJjbWhiZHU0YngxNjF2MmtwdXAxaWtydjR5In0.0Xx724Epn3x3nJ8hAYC1dA';
@@ -458,6 +424,9 @@ CREATE TRIGGER on_auth_user_created
     let adminLogs = [];
     let diagnosticLogs = [];
     let pendingEmail = null;
+    let pendingPhone = null;
+    let authMethod = 'email'; // 'email' | 'sms'
+    let otpTimerInterval = null;
 
     const COLLECTION_POINTS = [
         { name: 'Centro de Acopio Municipal', coords: [-74.1086, 4.8105], type: 'municipal', color: '#16a34a', desc: 'Cra. 3 #5-20, Cota. Lun–Vie 8am–5pm' },
@@ -469,87 +438,124 @@ CREATE TRIGGER on_auth_user_created
     ];
 
     // ============================================================
-    // CACHE PURGE
+    // OTP UI HELPERS
     // ============================================================
     
-    (function purgeCache() {
-        const savedVersion = localStorage.getItem('app_version');
-        const versionTag = document.getElementById('version-tag');
-        if (versionTag) versionTag.innerText = `v${APP_VERSION}`;
+    function setAuthMethod(method) {
+        authMethod = method;
+        document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('method-' + method).classList.add('active');
         
-        if (savedVersion && savedVersion !== APP_VERSION) {
-            console.log(`[CACHE] Versión cambiada: ${savedVersion} → ${APP_VERSION}. Limpiando...`);
-            localStorage.clear();
-            sessionStorage.clear();
-            localStorage.setItem('app_version', APP_VERSION);
-            
-            const banner = document.getElementById('cache-purge-banner');
-            if (banner) banner.classList.remove('hidden');
+        const phoneSection = document.getElementById('phone-section');
+        if (method === 'sms') {
+            phoneSection.classList.remove('hidden');
         } else {
-            localStorage.setItem('app_version', APP_VERSION);
+            phoneSection.classList.add('hidden');
         }
-        
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => {
-                    console.log('[CACHE] Unregistering SW:', reg.scope);
-                    reg.unregister();
-                });
-            });
-        }
-        
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                names.forEach(name => {
-                    console.log('[CACHE] Deleting cache:', name);
-                    caches.delete(name);
-                });
-            });
-        }
-        
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-            const url = args[0];
-            if (typeof url === 'string' && url.includes(window.location.hostname)) {
-                const separator = url.includes('?') ? '&' : '?';
-                args[0] = `${url}${separator}_v=${APP_VERSION}&_t=${Date.now()}`;
-            }
-            return originalFetch.apply(this, args);
-        };
-    })();
-
-    function hardReload() {
-        window.location.href = window.location.href.split('?')[0] + '?_purge=' + Date.now();
     }
 
-    function forcePurgeAll() {
-        if (!confirm('¿Borrar TODO el caché, localStorage, sessionStorage y cookies?')) return;
+    function showOTPScreen(target) {
+        document.getElementById('auth-form').classList.add('hidden');
+        document.getElementById('otp-screen').classList.remove('hidden');
+        document.getElementById('otp-target').innerText = target;
         
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        document.cookie.split(';').forEach(cookie => {
-            const [name] = cookie.split('=');
-            document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        // Reset inputs
+        document.querySelectorAll('.otp-input').forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
         });
+        document.querySelector('.otp-input[data-index="0"]').focus();
         
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => reg.unregister());
-            });
-        }
-        
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                names.forEach(name => caches.delete(name));
-            });
-        }
-        
-        showToast('🧹 Todo limpiado. Recargando...');
-        setTimeout(() => hardReload(), 1000);
+        startOTPTimer();
     }
 
-    // ==================== DIAGNÓSTICO ====================
+    function hideOTPScreen() {
+        document.getElementById('otp-screen').classList.add('hidden');
+        document.getElementById('auth-form').classList.remove('hidden');
+        stopOTPTimer();
+    }
+
+    function startOTPTimer() {
+        let seconds = 60;
+        const timerEl = document.getElementById('otp-timer');
+        const resendBtn = document.getElementById('resend-otp-btn');
+        
+        resendBtn.disabled = true;
+        timerEl.classList.remove('expired');
+        
+        stopOTPTimer();
+        
+        otpTimerInterval = setInterval(() => {
+            seconds--;
+            if (seconds > 0) {
+                timerEl.innerText = `Reenviar código en ${seconds}s`;
+            } else {
+                timerEl.innerText = '¿No recibiste el código?';
+                timerEl.classList.add('expired');
+                resendBtn.disabled = false;
+                stopOTPTimer();
+            }
+        }, 1000);
+    }
+
+    function stopOTPTimer() {
+        if (otpTimerInterval) {
+            clearInterval(otpTimerInterval);
+            otpTimerInterval = null;
+        }
+    }
+
+    // OTP Input handling
+    document.addEventListener('DOMContentLoaded', () => {
+        const otpInputs = document.querySelectorAll('.otp-input');
+        
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+            
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                e.target.value = val;
+                
+                if (val) {
+                    e.target.classList.add('filled');
+                    if (index < 5) {
+                        otpInputs[index + 1].focus();
+                    } else {
+                        // Last digit entered, auto-verify
+                        setTimeout(() => verifyOTP(), 200);
+                    }
+                } else {
+                    e.target.classList.remove('filled');
+                }
+            });
+            
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                
+                pasteData.split('').forEach((char, i) => {
+                    if (otpInputs[i]) {
+                        otpInputs[i].value = char;
+                        otpInputs[i].classList.add('filled');
+                    }
+                });
+                
+                if (pasteData.length === 6) {
+                    setTimeout(() => verifyOTP(), 200);
+                } else if (otpInputs[pasteData.length]) {
+                    otpInputs[pasteData.length].focus();
+                }
+            });
+        });
+    });
+
+    // ============================================================
+    // DIAGNÓSTICO
+    // ============================================================
     
     function logDiagnostic(message, type = 'info') {
         const timestamp = new Date().toLocaleTimeString();
@@ -576,7 +582,7 @@ CREATE TRIGGER on_auth_user_created
         const logContainer = document.getElementById('diagnostic-log');
         logContainer.innerHTML = '';
         
-        logDiagnostic(`🔍 v${APP_VERSION} | Site: ${SITE_URL}`, 'info');
+        logDiagnostic(`🔍 v${APP_VERSION} | Site: ${SITE_URL} | Method: ${authMethod}`, 'info');
         
         try {
             const start = performance.now();
@@ -604,8 +610,6 @@ CREATE TRIGGER on_auth_user_created
             logDiagnostic(`❌ Init failed: ${e.message}`, 'error');
         }
         
-        await handleEmailConfirmation();
-        
         try {
             const { data: { session } } = await db.auth.getSession();
             if (session) {
@@ -618,39 +622,9 @@ CREATE TRIGGER on_auth_user_created
         }
     };
 
-    // ==================== EMAIL CONFIRMATION ====================
-    
-    async function handleEmailConfirmation() {
-        const hash = window.location.hash;
-        const query = window.location.search;
-        
-        if (hash.includes('access_token') || hash.includes('refresh_token') || 
-            query.includes('token') || query.includes('type=signup')) {
-            
-            logDiagnostic('🔍 Confirmación de email detectada', 'info');
-            
-            try {
-                const { data: { session }, error } = await db.auth.getSession();
-                
-                if (error) {
-                    logDiagnostic(`❌ Confirm error: ${error.message}`, 'error');
-                    return;
-                }
-                
-                if (session) {
-                    currentUser = session.user;
-                    logDiagnostic(`✅ Email confirmado: ${session.user.email}`, 'info');
-                    showToast('¡Email confirmado! 🎉');
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    await initUserData();
-                }
-            } catch (e) {
-                logDiagnostic(`❌ Confirm exception: ${e.message}`, 'error');
-            }
-        }
-    }
-
-    // ==================== AUTH ====================
+    // ============================================================
+    // AUTH: LOGIN & REGISTER WITH OTP
+    // ============================================================
     
     async function login() {
         const email = document.getElementById('auth-email').value.trim();
@@ -682,6 +656,7 @@ CREATE TRIGGER on_auth_user_created
     async function register() {
         const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
+        const phone = document.getElementById('auth-phone')?.value.trim();
         
         if (!email || !pass) {
             showToast('Completa email y contraseña');
@@ -693,10 +668,25 @@ CREATE TRIGGER on_auth_user_created
             return;
         }
 
-        logDiagnostic(`📝 Registro: ${email}`, 'info');
+        // SMS method validation
+        if (authMethod === 'sms') {
+            if (!phone) {
+                showToast('Ingresa tu número de teléfono');
+                return;
+            }
+            // Basic phone validation
+            if (!phone.match(/^\+[1-9]\d{1,14}$/)) {
+                alert('Formato inválido. Usa: +57 300 123 4567 o +573001234567');
+                return;
+            }
+        }
+
+        logDiagnostic(`📝 Registro ${authMethod}: ${email}`, 'info');
         pendingEmail = email;
+        pendingPhone = phone;
 
         try {
+            // Check if user already exists
             const { data: loginData } = await db.auth.signInWithPassword({ email, password: pass });
             if (loginData?.user) {
                 currentUser = loginData.user;
@@ -704,39 +694,155 @@ CREATE TRIGGER on_auth_user_created
                 await initUserData();
                 return;
             }
+        } catch (e) {
+            // Expected error - user doesn't exist yet
+        }
 
-            const { data, error } = await db.auth.signUp({ 
-                email, 
-                password: pass,
-                options: {
-                    emailRedirectTo: SITE_URL,
-                    data: { name: '' }
-                }
-            });
-            
-            if (error) {
-                logDiagnostic(`❌ Signup: ${error.message}`, 'error');
-                alert('Error: ' + error.message);
-                return;
-            }
-            
-            if (data?.user) {
-                currentUser = data.user;
-                logDiagnostic(`✅ Usuario creado: ${data.user.id}`, 'info');
+        try {
+            if (authMethod === 'email') {
+                // EMAIL OTP: signUp with email OTP
+                const { data, error } = await db.auth.signUp({ 
+                    email, 
+                    password: pass,
+                    options: {
+                        data: { name: '' }
+                    }
+                });
                 
-                if (!data.session) {
-                    logDiagnostic('📩 Requiere confirmación email', 'info');
-                    showVerificationBanner(email);
+                if (error) {
+                    logDiagnostic(`❌ Signup: ${error.message}`, 'error');
+                    alert('Error: ' + error.message);
+                    return;
+                }
+                
+                if (data?.user && !data?.session) {
+                    // Email confirmation required - Supabase sends OTP automatically
+                    logDiagnostic(`📩 OTP enviado a ${email}`, 'info');
+                    showOTPScreen(email);
+                } else if (data?.session) {
+                    // Auto-confirmed (if email confirmation disabled in Supabase)
+                    currentUser = data.user;
+                    logDiagnostic(`✅ Usuario creado (auto-confirmed)`, 'info');
                     await createProfileAfterSignup(data.user);
-                } else {
-                    showToast('Cuenta creada 🎉');
                     await initUserData();
                 }
+                
+            } else if (authMethod === 'sms') {
+                // SMS OTP: signUp with phone
+                const { data, error } = await db.auth.signUp({
+                    email,
+                    password: pass,
+                    phone: phone,
+                    options: {
+                        data: { name: '' }
+                    }
+                });
+                
+                if (error) {
+                    logDiagnostic(`❌ SMS Signup: ${error.message}`, 'error');
+                    alert('Error: ' + error.message);
+                    return;
+                }
+                
+                if (data?.user && !data?.session) {
+                    logDiagnostic(`📩 SMS OTP enviado a ${phone}`, 'info');
+                    showOTPScreen(phone);
+                }
             }
+            
         } catch (e) {
             logDiagnostic(`❌ Registro exc: ${e.message}`, 'error');
             alert('Error: ' + e.message);
         }
+    }
+
+    async function verifyOTP() {
+        const inputs = document.querySelectorAll('.otp-input');
+        const code = Array.from(inputs).map(i => i.value).join('');
+        
+        if (code.length !== 6) {
+            showToast('Ingresa los 6 dígitos');
+            return;
+        }
+
+        logDiagnostic(`🔐 Verificando OTP: ${code}`, 'info');
+
+        try {
+            let result;
+            
+            if (authMethod === 'email') {
+                // Verify email OTP
+                result = await db.auth.verifyOtp({
+                    email: pendingEmail,
+                    token: code,
+                    type: 'signup'
+                });
+            } else {
+                // Verify SMS OTP
+                result = await db.auth.verifyOtp({
+                    phone: pendingPhone,
+                    token: code,
+                    type: 'sms'
+                });
+            }
+
+            if (result.error) {
+                logDiagnostic(`❌ OTP inválido: ${result.error.message}`, 'error');
+                alert('Código incorrecto o expirado. Intenta de nuevo.');
+                
+                // Clear inputs
+                inputs.forEach(i => {
+                    i.value = '';
+                    i.classList.remove('filled');
+                });
+                inputs[0].focus();
+                return;
+            }
+
+            currentUser = result.data.user;
+            logDiagnostic(`✅ OTP verificado. Usuario: ${currentUser.id}`, 'info');
+            
+            hideOTPScreen();
+            showToast('¡Cuenta verificada! 🎉');
+            
+            await createProfileAfterSignup(currentUser);
+            await initUserData();
+            
+        } catch (e) {
+            logDiagnostic(`❌ OTP exc: ${e.message}`, 'error');
+            alert('Error: ' + e.message);
+        }
+    }
+
+    async function resendOTP() {
+        logDiagnostic(`📩 Reenviando OTP ${authMethod}...`, 'info');
+        
+        try {
+            if (authMethod === 'email') {
+                await db.auth.resend({
+                    type: 'signup',
+                    email: pendingEmail
+                });
+            } else {
+                await db.auth.signUp({
+                    email: pendingEmail,
+                    password: document.getElementById('auth-pass').value,
+                    phone: pendingPhone
+                });
+            }
+            
+            showToast('Código reenviado 📩');
+            startOTPTimer();
+            
+        } catch (e) {
+            logDiagnostic(`❌ Reenvío falló: ${e.message}`, 'error');
+            alert('Error al reenviar: ' + e.message);
+        }
+    }
+
+    function cancelOTP() {
+        hideOTPScreen();
+        logDiagnostic('❌ OTP cancelado por usuario', 'info');
     }
 
     async function createProfileAfterSignup(user) {
@@ -757,32 +863,6 @@ CREATE TRIGGER on_auth_user_created
             }
         } catch (e) {
             logDiagnostic(`❌ Perfil exc: ${e.message}`, 'error');
-        }
-    }
-
-    function showVerificationBanner(email) {
-        document.getElementById('verify-email').innerText = email;
-        document.getElementById('verify-banner').classList.remove('hidden');
-        document.getElementById('diagnostic-panel').classList.add('hidden');
-    }
-
-    async function resendVerification() {
-        if (!pendingEmail) pendingEmail = document.getElementById('auth-email').value.trim();
-        
-        try {
-            const { error } = await db.auth.resend({
-                type: 'signup',
-                email: pendingEmail,
-                options: { emailRedirectTo: SITE_URL }
-            });
-            
-            if (error) {
-                alert('Error: ' + error.message);
-            } else {
-                showToast('Email reenviado 📩');
-            }
-        } catch (e) {
-            alert('Error: ' + e.message);
         }
     }
 
@@ -842,7 +922,9 @@ CREATE TRIGGER on_auth_user_created
         location.reload();
     }
 
-    // ==================== PROFILE SETUP (Legacy - no auth) ====================
+    // ============================================================
+    // PROFILE SETUP
+    // ============================================================
 
     async function initUserData() {
         try {
@@ -850,14 +932,12 @@ CREATE TRIGGER on_auth_user_created
             
             if (error) {
                 if (error.code === 'PGRST116') {
-                    // Perfil no existe, mostrar setup
                     showProfileSetup();
                     return;
                 }
             }
             
             if (profile?.name) {
-                // Perfil completo, entrar a la app
                 localStorage.setItem('user_real_name', profile.name);
                 localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
                 if (profile.role === 'owner' || localStorage.getItem('is_owner') === 'true') {
@@ -866,7 +946,6 @@ CREATE TRIGGER on_auth_user_created
                 }
                 enterApp();
             } else {
-                // Perfil existe pero sin nombre, mostrar setup
                 showProfileSetup();
             }
         } catch (e) {
@@ -876,7 +955,7 @@ CREATE TRIGGER on_auth_user_created
 
     function showProfileSetup() {
         document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('verify-banner').classList.add('hidden');
+        document.getElementById('otp-screen').classList.add('hidden');
         document.getElementById('profile-setup').classList.remove('hidden');
     }
 
@@ -895,7 +974,6 @@ CREATE TRIGGER on_auth_user_created
         }
 
         try {
-            // Solo UPDATE al perfil existente, no auth
             const { error } = await db.from('profiles')
                 .update({ 
                     name: name,
@@ -935,7 +1013,7 @@ CREATE TRIGGER on_auth_user_created
     
     function enterApp() {
         document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('verify-banner').classList.add('hidden');
+        document.getElementById('otp-screen').classList.add('hidden');
         document.getElementById('profile-setup').classList.add('hidden');
         document.getElementById('main-app').classList.remove('hidden');
         updateGlobalUI();
@@ -1363,20 +1441,6 @@ CREATE TRIGGER on_auth_user_created
     function toggleGuide(e) {
         if (e && e.target !== document.getElementById('guide-modal')) return;
         document.getElementById('guide-modal').classList.toggle('hidden');
-    }
-    
-    function toggleEmergencySQL(e) {
-        if (e && e.target !== document.getElementById('emergency-sql-modal')) return;
-        document.getElementById('emergency-sql-modal').classList.toggle('hidden');
-    }
-    
-    function copyEmergencySQL() {
-        const sql = document.querySelector('#emergency-sql-modal .code-block').innerText;
-        navigator.clipboard.writeText(sql).then(() => {
-            showToast('SQL copiado 📋');
-        }).catch(() => {
-            showToast('Error al copiar');
-        });
     }
 
     // HELPERS
