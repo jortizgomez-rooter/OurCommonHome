@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Nuestro Hogar Común | Cota</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -69,21 +67,42 @@
         .post-admin { position: relative; }
         .post-admin .delete-btn { position: absolute; top: 0.5rem; right: 0.5rem; opacity: 0; transition: opacity 0.2s; }
         .post-admin:hover .delete-btn { opacity: 1; }
+        
+        /* Nuevos estilos para diagnóstico */
+        .diagnostic-panel { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .diagnostic-panel h4 { color: #92400e; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .diagnostic-log { font-family: monospace; font-size: 0.7rem; color: #78350f; background: #fffbeb; padding: 0.5rem; border-radius: 0.5rem; max-height: 150px; overflow-y: auto; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
+        .status-ok { background: #22c55e; }
+        .status-error { background: #ef4444; }
+        .status-warn { background: #f59e0b; }
     </style>
 </head>
 <body class="text-slate-900 pb-32">
 
 <!-- ==================== AUTH SCREEN ==================== -->
-<div id="auth-screen" class="fixed inset-0 bg-[#F0F4F0] z-[100] flex flex-col items-center justify-center p-6">
+<div id="auth-screen" class="fixed inset-0 bg-[#F0F4F0] z-[100] flex flex-col items-center justify-center p-6 overflow-y-auto">
     <div class="w-28 h-28 bg-green-50 rounded-[2.5rem] mb-6 flex items-center justify-center text-6xl shadow-inner">🌿</div>
     <h1 class="text-3xl font-black mb-2 tracking-tight">Nuestro Hogar Común</h1>
     <p class="text-slate-500 font-medium text-sm mb-8 text-center max-w-xs">Comunidad ecológica de Cota. Retos, mapa y muro verde.</p>
     
+    <!-- Panel de Diagnóstico (se muestra solo si hay errores) -->
+    <div id="diagnostic-panel" class="diagnostic-panel hidden w-full max-w-sm">
+        <h4>🔧 Diagnóstico de Conexión</h4>
+        <div id="diagnostic-log" class="diagnostic-log"></div>
+        <button onclick="runDiagnostics()" class="mt-2 text-xs font-bold text-amber-700 underline">Re-ejecutar diagnóstico</button>
+    </div>
+    
     <div class="login-card w-full max-w-sm space-y-3">
-        <input id="auth-email" type="email" placeholder="Email" class="input-field">
-        <input id="auth-pass" type="password" placeholder="Contraseña" class="input-field">
+        <input id="auth-email" type="email" placeholder="Email" class="input-field" value="raulortiz11@gmail.com">
+        <input id="auth-pass" type="password" placeholder="Contraseña" class="input-field" value="Diciembre07">
         <button class="btn-primary" onclick="login()">Entrar</button>
         <button class="btn-primary" style="background:#16a34a;" onclick="register()">Crear cuenta</button>
+        
+        <!-- Botón de diagnóstico visible -->
+        <button onclick="runDiagnostics()" class="w-full p-3 rounded-xl border-2 border-amber-200 text-amber-600 font-bold text-xs active:scale-95 transition-transform bg-amber-50">
+            🔍 Diagnosticar Supabase
+        </button>
         
         <div class="owner-section">
             <p class="text-center text-xs font-black text-purple-600 uppercase tracking-widest mb-3">🔐 Acceso Owner</p>
@@ -97,6 +116,9 @@
     </div>
     
     <button onclick="toggleGuide()" class="mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Guía Supabase ⚙️</button>
+    
+    <!-- Sección de SQL de Emergencia -->
+    <button onclick="toggleEmergencySQL()" class="mt-4 text-xs font-bold text-red-400 uppercase tracking-widest">🆘 SQL de Emergencia</button>
 </div>
 
 <!-- ==================== ONBOARDING ==================== -->
@@ -358,6 +380,56 @@
     </div>
 </div>
 
+<!-- ===== EMERGENCY SQL MODAL ===== -->
+<div id="emergency-sql-modal" class="modal-overlay hidden" onclick="toggleEmergencySQL(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-black text-lg text-red-600">🆘 SQL de Emergencia</h3>
+            <button onclick="toggleEmergencySQL()" class="text-slate-400 font-bold text-sm p-2">Cerrar</button>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">Ejecuta esto en SQL Editor de Supabase si tienes error 500 en signup:</p>
+        <div class="code-block" style="font-size:0.65rem; line-height:1.4;">
+-- 1. Crear tabla profiles si no existe
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name text,
+    email text,
+    avatar_url text,
+    role text DEFAULT 'user',
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- 2. Eliminar triggers problemáticos (CUIDADO)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- 3. Recrear función segura
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, role)
+  VALUES (new.id, '', new.email, 'user')
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Recrear trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 5. Políticas RLS básicas
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users can view all profiles"
+  ON public.profiles FOR SELECT TO authenticated, anon USING (true);
+CREATE POLICY IF NOT EXISTS "Users can update own profile"
+  ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+        </div>
+        <button onclick="copyEmergencySQL()" class="btn-primary mt-4" style="background:#16a34a;">📋 Copiar SQL</button>
+    </div>
+</div>
+
 <script>
     // CONFIG
     const MAPBOX_TOKEN = 'pk.eyJ1IjoiamVyaXhkZXZlbG9waW5naSIsImEiOiJjbWhiZHU0YngxNjF2MmtwdXAxaWtydjR5In0.0Xx724Epn3x3nJ8hAYC1dA';
@@ -369,6 +441,7 @@
     let currentUser = null;
     let isOwner = false;
     let adminLogs = [];
+    let diagnosticLogs = [];
 
     const COLLECTION_POINTS = [
         { name: 'Centro de Acopio Municipal', coords: [-74.1086, 4.8105], type: 'municipal', color: '#16a34a', desc: 'Cra. 3 #5-20, Cota. Lun–Vie 8am–5pm' },
@@ -379,40 +452,230 @@
         { name: 'Punto Verde Siberia', coords: [-74.1023, 4.8155], type: 'verde', color: '#3b82f6', desc: 'Vía Siberia, cerca al portón. 24 horas' },
     ];
 
+    // ==================== DIAGNÓSTICO ====================
+    
+    function logDiagnostic(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const log = `[${timestamp}] ${message}`;
+        diagnosticLogs.push({ message, type, timestamp });
+        console.log(`[DIAGNOSTIC ${type.toUpperCase()}] ${message}`);
+        
+        const logContainer = document.getElementById('diagnostic-log');
+        if (logContainer) {
+            const color = type === 'error' ? '#ef4444' : type === 'warn' ? '#f59e0b' : '#16a34a';
+            logContainer.innerHTML += `<div style="color:${color}; margin-bottom:2px;">${escHtml(log)}</div>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    }
+
+    async function runDiagnostics() {
+        diagnosticLogs = [];
+        document.getElementById('diagnostic-panel').classList.remove('hidden');
+        const logContainer = document.getElementById('diagnostic-log');
+        logContainer.innerHTML = '';
+        
+        logDiagnostic('Iniciando diagnóstico completo...', 'info');
+        
+        // 1. Verificar conexión básica
+        try {
+            const start = performance.now();
+            const { data, error } = await db.from('profiles').select('count', { count: 'exact', head: true });
+            const duration = (performance.now() - start).toFixed(0);
+            
+            if (error) {
+                logDiagnostic(`❌ Tabla profiles: ${error.message}`, 'error');
+                if (error.message.includes('does not exist')) {
+                    logDiagnostic('⚠️ La tabla profiles NO EXISTE. Debes crearla.', 'warn');
+                }
+            } else {
+                logDiagnostic(`✅ Tabla profiles accesible (${duration}ms)`, 'info');
+            }
+        } catch (e) {
+            logDiagnostic(`❌ Error crítico conectando a Supabase: ${e.message}`, 'error');
+        }
+        
+        // 2. Verificar auth
+        try {
+            const { data: { session }, error } = await db.auth.getSession();
+            if (error) {
+                logDiagnostic(`❌ Auth error: ${error.message}`, 'error');
+            } else if (session) {
+                logDiagnostic(`✅ Sesión activa: ${session.user.email}`, 'info');
+            } else {
+                logDiagnostic('ℹ️ No hay sesión activa', 'info');
+            }
+        } catch (e) {
+            logDiagnostic(`❌ Auth check failed: ${e.message}`, 'error');
+        }
+        
+        // 3. Verificar triggers en auth.users
+        try {
+            // No podemos consultar directamente auth.users desde cliente, pero podemos intentar signup
+            logDiagnostic('ℹ️ Para verificar triggers, intenta crear un usuario', 'info');
+        } catch (e) {
+            logDiagnostic(`❌ Trigger check error: ${e.message}`, 'error');
+        }
+        
+        logDiagnostic('Diagnóstico completado.', 'info');
+    }
+
     // INIT
     window.onload = async () => {
         try {
             db = supabase.createClient(SB_URL, SB_ANON_KEY);
-            console.log('✅ Supabase conectado');
+            logDiagnostic('✅ Cliente Supabase inicializado', 'info');
         } catch(e) {
+            logDiagnostic(`❌ Fallo inicialización Supabase: ${e.message}`, 'error');
             console.warn('❌ Supabase init failed:', e);
         }
         
-        const { data: { session } } = await db.auth.getSession();
-        if (session) {
-            currentUser = session.user;
-            await initUserData();
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                logDiagnostic(`✅ Sesión restaurada: ${session.user.email}`, 'info');
+                await initUserData();
+            } else {
+                logDiagnostic('ℹ️ No hay sesión previa', 'info');
+            }
+        } catch (e) {
+            logDiagnostic(`❌ Error verificando sesión: ${e.message}`, 'error');
         }
     };
 
-    // AUTH
+    // ==================== AUTH REPARADO ====================
+    
     async function login() {
-        const email = document.getElementById('auth-email').value;
+        const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
-        const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-        if (error) { alert(error.message); return; }
-        currentUser = data.user;
-        await initUserData();
+        
+        if (!email || !pass) {
+            showToast('Completa email y contraseña');
+            return;
+        }
+
+        logDiagnostic(`Intentando login: ${email}`, 'info');
+
+        try {
+            const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+            if (error) {
+                logDiagnostic(`❌ Login error: ${error.message} (status: ${error.status || 'unknown'})`, 'error');
+                alert(error.message);
+                return;
+            }
+            currentUser = data.user;
+            logDiagnostic(`✅ Login exitoso: ${data.user.email}`, 'info');
+            await initUserData();
+        } catch (e) {
+            logDiagnostic(`❌ Login exception: ${e.message}`, 'error');
+            alert('Error inesperado: ' + e.message);
+        }
     }
 
     async function register() {
-        const email = document.getElementById('auth-email').value;
+        const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
-        const { data, error } = await db.auth.signUp({ email, password: pass });
-        if (error) { alert(error.message); return; }
-        currentUser = data.user;
-        showToast('Revisa tu correo 📩');
-        showOnboarding();
+        
+        if (!email || !pass) {
+            showToast('Completa email y contraseña');
+            return;
+        }
+        
+        if (pass.length < 6) {
+            alert('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        logDiagnostic(`📝 Iniciando registro: ${email}`, 'info');
+
+        try {
+            // PASO 1: Intentar login primero (por si ya existe)
+            logDiagnostic('Paso 1: Verificando si usuario existe...', 'info');
+            const { data: loginData, error: loginError } = await db.auth.signInWithPassword({ 
+                email, 
+                password: pass 
+            });
+            
+            if (loginData?.user) {
+                logDiagnostic('✅ Usuario existente, login automático', 'info');
+                currentUser = loginData.user;
+                showToast('¡Bienvenido de vuelta! 👋');
+                await initUserData();
+                return;
+            }
+            
+            if (loginError && !loginError.message.includes('Invalid login')) {
+                logDiagnostic(`⚠️ Login check error: ${loginError.message}`, 'warn');
+            }
+
+            // PASO 2: Crear nueva cuenta
+            logDiagnostic('Paso 2: Creando nueva cuenta...', 'info');
+            const { data, error } = await db.auth.signUp({ 
+                email, 
+                password: pass,
+                options: {
+                    emailRedirectTo: window.location.origin,
+                    data: {
+                        name: ''
+                    }
+                }
+            });
+            
+            if (error) {
+                logDiagnostic(`❌ Signup error: ${error.message} (code: ${error.code || 'none'}, status: ${error.status || 'none'})`, 'error');
+                console.error('Signup full error:', error);
+                
+                // Análisis específico del error
+                if (error.status === 500 || error.status === 0) {
+                    logDiagnostic('🔴 ERROR 500 DETECTADO - Causas probables:', 'error');
+                    logDiagnostic('  1. Trigger en auth.users fallando', 'error');
+                    logDiagnostic('  2. Tabla profiles no existe o falta columna', 'error');
+                    logDiagnostic('  3. Schema auth modificado/corrupto', 'error');
+                    logDiagnostic('  4. Proyecto Supabase pausado o límite alcanzado', 'error');
+                    
+                    alert(`❌ Error 500 del servidor de Supabase.\n\nEl usuario NO EXISTE pero el servidor falló al crearlo.\n\nCAUSAS PROBABLES:\n• Trigger en auth.users intenta insertar en tabla/columna que no existe\n• Tabla 'profiles' no creada o le faltan columnas\n• Schema de auth modificado manualmente\n\nSOLUCIÓN:\n1. Abre Supabase Dashboard > SQL Editor\n2. Ejecuta el "SQL de Emergencia" (botón 🆘 abajo)\n3. Revisa Logs > Auth para detalles exactos\n\nError: ${error.message}`);
+                    
+                    // Mostrar panel de diagnóstico
+                    document.getElementById('diagnostic-panel').classList.remove('hidden');
+                    return;
+                }
+                
+                if (error.message?.includes('already registered') || error.code === 'user_already_exists') {
+                    alert('Este email ya está registrado. Usa "Entrar".');
+                    return;
+                }
+                
+                if (error.message?.includes('signup_disabled') || error.code === 'signup_disabled') {
+                    alert('Registros deshabilitados en este proyecto Supabase.');
+                    return;
+                }
+                
+                alert('Error: ' + error.message);
+                return;
+            }
+            
+            if (data?.user) {
+                currentUser = data.user;
+                logDiagnostic(`✅ Usuario creado: ${data.user.email}`, 'info');
+                logDiagnostic(`Session presente: ${data.session ? 'Sí' : 'No (requiere confirmación email)'}`, 'info');
+                
+                // Si no hay sesión, requiere confirmación de email
+                if (!data.session) {
+                    showToast('Cuenta creada. Revisa tu correo para confirmar 📩');
+                    showOnboarding();
+                } else {
+                    showToast('Cuenta creada exitosamente 🎉');
+                    await initUserData();
+                }
+            } else {
+                logDiagnostic('⚠️ No se recibió user en respuesta', 'warn');
+            }
+            
+        } catch (e) {
+            logDiagnostic(`❌ Exception en registro: ${e.message}`, 'error');
+            console.error('Register exception:', e);
+            alert('Error inesperado: ' + e.message);
+        }
     }
 
     // OWNER LOGIN
@@ -472,17 +735,58 @@
     }
 
     async function initUserData() {
-        const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
-        
-        if (profile?.name) {
-            localStorage.setItem('user_real_name', profile.name);
-            localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
-            if (profile.role === 'owner' || localStorage.getItem('is_owner') === 'true') {
-                isOwner = true;
-                localStorage.setItem('is_owner', 'true');
+        try {
+            const { data: profile, error } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+            
+            if (error) {
+                logDiagnostic(`⚠️ Error cargando perfil: ${error.message}`, 'warn');
+                // Si el perfil no existe, crearlo automáticamente
+                if (error.code === 'PGRST116') {
+                    logDiagnostic('Perfil no encontrado, creando...', 'info');
+                    await createDefaultProfile();
+                    return;
+                }
             }
-            enterApp();
-        } else {
+            
+            if (profile?.name) {
+                localStorage.setItem('user_real_name', profile.name);
+                localStorage.setItem('user_unique_tag', profile.name.toLowerCase().replace(/\s+/g, '_'));
+                if (profile.role === 'owner' || localStorage.getItem('is_owner') === 'true') {
+                    isOwner = true;
+                    localStorage.setItem('is_owner', 'true');
+                }
+                enterApp();
+            } else {
+                showOnboarding();
+            }
+        } catch (e) {
+            logDiagnostic(`❌ Error initUserData: ${e.message}`, 'error');
+            showOnboarding();
+        }
+    }
+    
+    async function createDefaultProfile() {
+        try {
+            const { error } = await db.from('profiles').upsert({
+                id: currentUser.id,
+                name: currentUser.email.split('@')[0],
+                email: currentUser.email,
+                role: 'user',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+            
+            if (error) {
+                logDiagnostic(`❌ Error creando perfil default: ${error.message}`, 'error');
+                showOnboarding();
+            } else {
+                logDiagnostic('✅ Perfil default creado', 'info');
+                localStorage.setItem('user_real_name', currentUser.email.split('@')[0]);
+                localStorage.setItem('user_unique_tag', currentUser.email.split('@')[0].toLowerCase());
+                enterApp();
+            }
+        } catch (e) {
+            logDiagnostic(`❌ Exception creando perfil: ${e.message}`, 'error');
             showOnboarding();
         }
     }
@@ -493,36 +797,45 @@
     }
 
     async function finishOnboarding() {
-    const name = document.getElementById('reg-name').value.trim();
-    const rawTag = document.getElementById('reg-tag').value.trim().replace('@', '').replace(/\s+/g, '_').toLowerCase();
-    
-    if (!name || !rawTag) { 
-        showToast('Completa tu nombre y usuario'); 
-        return; 
-    }
-    
-    localStorage.setItem('user_real_name', name);
-    localStorage.setItem('user_unique_tag', '@' + rawTag);
-    
-    if (currentUser) {
-        // CAMBIO: Usamos UPSERT en lugar de UPDATE
-        const { error } = await db.from('profiles').upsert({ 
-            id: currentUser.id, 
-            name: name,
-            email: currentUser.email,
-            role: 'user' // Por defecto
-        });
-
-        if (error) {
-            console.error(error);
-            showToast('Error al guardar: ' + error.message);
-            return;
+        const name = document.getElementById('reg-name').value.trim();
+        const rawTag = document.getElementById('reg-tag').value.trim().replace('@', '').replace(/\s+/g, '_').toLowerCase();
+        
+        if (!name || !rawTag) { 
+            showToast('Completa tu nombre y usuario'); 
+            return; 
         }
+        
+        localStorage.setItem('user_real_name', name);
+        localStorage.setItem('user_unique_tag', '@' + rawTag);
+        
+        if (currentUser) {
+            try {
+                const { error } = await db.from('profiles').upsert({ 
+                    id: currentUser.id, 
+                    name: name,
+                    email: currentUser.email,
+                    role: 'user',
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+
+                if (error) {
+                    logDiagnostic(`❌ Error guardando perfil: ${error.message}`, 'error');
+                    showToast('Error al guardar: ' + error.message);
+                    return;
+                }
+                
+                logDiagnostic('✅ Perfil guardado en onboarding', 'info');
+            } catch (e) {
+                logDiagnostic(`❌ Exception en onboarding: ${e.message}`, 'error');
+                showToast('Error de conexión');
+                return;
+            }
+        }
+        
+        document.getElementById('onboarding').classList.add('hidden');
+        enterApp();
     }
     
-    document.getElementById('onboarding').classList.add('hidden');
-    enterApp();
-}
     function enterApp() {
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('onboarding').classList.add('hidden');
@@ -610,7 +923,6 @@
             const { data: actions } = await db.from('acciones').select('impacto_co2');
             const totalCO2 = (actions || []).reduce((a, b) => a + parseFloat(b.impacto_co2 || 0), 0);
             
-            // Actividad de hoy (posts creados hoy)
             const today = new Date().toISOString().split('T')[0];
             const { count: todayCount } = await db.from('comunidad')
                 .select('*', { count: 'exact', head: true })
@@ -629,7 +941,6 @@
         document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
         document.getElementById('admin-section-' + section).classList.remove('hidden');
         
-        // Update button styles
         document.querySelectorAll('[id^="admin-tab-"]').forEach(b => b.style.opacity = '0.6');
         document.getElementById('admin-tab-' + section).style.opacity = '1';
     }
@@ -669,14 +980,12 @@
 
     async function deleteUser(id) {
         if (!confirm('¿Eliminar usuario permanentemente?')) return;
-        // Nota: Borrar de auth.users requiere service_role, solo marcamos como deleted
         await db.from('profiles').update({ role: 'deleted', name: '[Eliminado]' }).eq('id', id);
         addLog('User deleted', id);
         showToast('Usuario eliminado');
         loadUsers();
     }
 
-    // ADMIN POSTS MODERATION
     async function loadAdminPosts() {
         try {
             const { data } = await db.from('comunidad').select('*').order('created_at', { ascending: false }).limit(50);
@@ -702,10 +1011,9 @@
         addLog('Post deleted', id);
         showToast('Publicación eliminada 🗑️');
         loadAdminPosts();
-        loadMuro(); // Refresh community view too
+        loadMuro();
     }
 
-    // LOGS SYSTEM
     function addLog(action, detail) {
         const log = {
             time: new Date().toLocaleString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -714,7 +1022,7 @@
             user: localStorage.getItem('user_real_name') || 'Admin'
         };
         adminLogs.unshift(log);
-        if (adminLogs.length > 100) adminLogs.pop(); // Keep last 100
+        if (adminLogs.length > 100) adminLogs.pop();
         renderLogs();
     }
 
@@ -955,10 +1263,60 @@
         } catch(e) {}
     }
 
-    // GUIDE
+    // GUIDE & EMERGENCY
     function toggleGuide(e) {
         if (e && e.target !== document.getElementById('guide-modal')) return;
         document.getElementById('guide-modal').classList.toggle('hidden');
+    }
+    
+    function toggleEmergencySQL(e) {
+        if (e && e.target !== document.getElementById('emergency-sql-modal')) return;
+        document.getElementById('emergency-sql-modal').classList.toggle('hidden');
+    }
+    
+    function copyEmergencySQL() {
+        const sql = `-- 1. Crear tabla profiles si no existe
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name text,
+    email text,
+    avatar_url text,
+    role text DEFAULT 'user',
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- 2. Eliminar triggers problemáticos (CUIDADO)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- 3. Recrear función segura
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, role)
+  VALUES (new.id, '', new.email, 'user')
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Recrear trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 5. Políticas RLS básicas
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users can view all profiles"
+  ON public.profiles FOR SELECT TO authenticated, anon USING (true);
+CREATE POLICY IF NOT EXISTS "Users can update own profile"
+  ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);`;
+        
+        navigator.clipboard.writeText(sql).then(() => {
+            showToast('SQL copiado al portapapeles 📋');
+        }).catch(() => {
+            showToast('Error al copiar');
+        });
     }
 
     // HELPERS
