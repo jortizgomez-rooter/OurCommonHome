@@ -363,10 +363,10 @@ for each row execute procedure handle_new_user();
 </div>
 
 <script>
-    // CONFIG
+    // CONFIG - TU ANON KEY REAL
     const MAPBOX_TOKEN = 'pk.eyJ1IjoiamVyaXhkZXZlbG9waW5naSIsImEiOiJjbWhiZHU0YngxNjF2MmtwdXAxaWtydjR5In0.0Xx724Epn3x3nJ8hAYC1dA';
     const SB_URL = 'https://oamlsuhtozbindompgpl.supabase.co';
-    const SB_ANON_KEY = 'sb_publishable_FUeEmJIVdKHlHMGcFiF0sg_3GbWjH-s';
+    const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hbWxzdWh0b3piaW5kb21wZ3BsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2OTkyMTUsImV4cCI6MjA5MTI3NTIxNX0.nYCJeJT2riBaXGRvaDiOxaIwGEt2o-Dl4Gn-ZrLtT3U';
     
     // MASTER KEY - CAMBIA ESTO EN PRODUCCIÓN
     const MASTER_OWNER_KEY = 'CotaOwner2024**';
@@ -388,8 +388,10 @@ for each row execute procedure handle_new_user();
     window.onload = async () => {
         try {
             db = supabase.createClient(SB_URL, SB_ANON_KEY);
+            console.log('✅ Supabase conectado');
         } catch(e) {
-            console.warn('Supabase init failed:', e);
+            console.warn('❌ Supabase init failed:', e);
+            showToast('Error de conexión con Supabase');
         }
         
         const { data: { session } } = await db.auth.getSession();
